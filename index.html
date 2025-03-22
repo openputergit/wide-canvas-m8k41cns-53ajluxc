@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KFurnish ERP - Complete Business Solution</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --neum-bg: #e0e5ec;
+            --neum-shadow-dark: #a3b1c6;
+            --neum-shadow-light: #ffffff;
+            --primary-color: #5a7b9c;
+            --secondary-color: #445b75;
+        }
+        body {
+            background-color: var(--neum-bg);
+            font-family: 'Poppins', sans-serif;
+        }
+        .neum-card {
+            background: var(--neum-bg);
+            border-radius: 20px;
+            box-shadow: 8px 8px 15px var(--neum-shadow-dark),
+                       -8px -8px 15px var(--neum-shadow-light);
+        }
+        .neum-button {
+            background: var(--neum-bg);
+            border-radius: 10px;
+            box-shadow: 5px 5px 10px var(--neum-shadow-dark),
+                       -5px -5px 10px var(--neum-shadow-light);
+            transition: all 0.2s ease;
+        }
+        .neum-button:hover {
+            transform: translateY(-2px);
+        }
+        .neum-button:active {
+            box-shadow: inset 5px 5px 10px var(--neum-shadow-dark),
+                       inset -5px -5px 10px var(--neum-shadow-light);
+            transform: translateY(0);
+        }
+        .neum-input {
+            background: var(--neum-bg);
+            border-radius: 10px;
+            box-shadow: inset 5px 5px 10px var(--neum-shadow-dark),
+                       inset -5px -5px 10px var(--neum-shadow-light);
+            border: none;
+            outline: none;
+        }
+        .neum-input:focus {
+            box-shadow: inset 4px 4px 8px var(--neum-shadow-dark),
+                       inset -4px -4px 8px var(--neum-shadow-light);
+        }
+        .module-content {
+            display: none;
+        }
+        .module-content.active {
+            display: block;
+        }
+        .neum-button.active {
+            color: var(--primary-color);
+            font-weight: 600;
+            box-shadow: inset 5px 5px 10px var(--neum-shadow-dark),
+                       inset -5px -5px 10px var(--neum-shadow-light);
+        }
+        .neum-button.active i {
+            color: var(--primary-color);
+        }
+        .loading {
+            border: 4px solid var(--neum-shadow-light);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .wallet-status {
+            transition: all 0.3s ease;
+        }
+        .blockchain-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 350px;
+            z-index: 1000;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .blockchain-notification.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .token-module {
+            display: none;
+        }
+        .token-module.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <!-- Blockchain Transaction Notification -->
+    <div id="blockchainNotification" class="blockchain-notification neum-card p-4">
+        <div class="flex items-center">
+            <div id="notificationIcon" class="mr-3 text-xl"></div>
+            <div>
+                <h5 id="notificationTitle" class="font-medium"></h5>
+                <p id="notificationMessage" class="text-sm text-gray-600"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="neum-card p-6 mb-8 flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-700">KFurnish ERP</h1>
+                <p class="text-gray-600">Complete Furnishing Business Management Solution</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex flex-col md:flex-row gap-3">
+                <!-- Wallet Connection Button -->
+                <button id="walletConnectBtn" class="neum-button p-3 text-gray-700">
+                    <i class="bi bi-wallet2 mr-2"></i>Connect Wallet
+                </button>
+                <!-- Admin Button -->
+                <button class="neum-button p-3 text-gray-700">
+                    <i class="bi bi-person-circle mr-2"></i>Admin
+                </button>
+            </div>
+        </header>
+
+        <!-- Wallet Status -->
+        <div id="walletStatus" class="neum-card p-4 mb-6 wallet-status opacity-0 hidden">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h4 class="font-medium text-gray-700">Wallet Connected</h4>
+                    <p id="walletAddress" class="text-sm text-gray-600"></p>
+                    <p id="networkInfo" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <div>
+                    <span id="walletBalance" class="font-medium text-gray-700"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
+            <!-- Module Buttons -->
+            <button class="neum-button p-4 md:p-6 text-left module-btn active" data-module="billing">
+                <i class="bi bi-receipt text-xl md:text-2xl mb-2 text-gray-600"></i>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700">Billing</h2>
+            </button>
+            <button class="neum-button p-4 md:p-6 text-left module-btn" data-module="quotation">
+                <i class="bi bi-file-text text-xl md:text-2xl mb-2 text-gray-600"></i>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700">Quotation</h2>
+            </button>
+            <button class="neum-button p-4 md:p-6 text-left module-btn" data-module="erp">
+                <i class="bi bi-graph-up text-xl md:text-2xl mb-2 text-gray-600"></i>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700">ERP</h2>
+            </button>
+            <button class="neum-button p-4 md:p-6 text-left module-btn" data-module="crm">
+                <i class="bi bi-people text-xl md:text-2xl mb-2 text-gray-600"></i>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700">CRM</h2>
+            </button>
+            <button class="neum-button p-4 md:p-6 text-left module-btn" data-module="token">
+                <i class="bi bi-coin text-xl md:text-2xl mb-2 text-gray-600"></i>
+                <h2 class="text-lg md:text-xl font-semibold text-gray-700">Loyalty Token</h2>
+            </button>
+        </div>
+
+        <!-- Module Contents -->
+        <div class="mt-8">
+            <!-- Billing Module -->
+            <div id="billing" class="module-content active">
+                <div class="neum-card p-6">
+                    <h3 class="text-2xl font-semibold mb-6 text-gray-700">Generate Invoice</h3>
+                    <form id="billingForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Customer Name</label>
+                                <input type="text" placeholder="Enter customer name" class="p-3 w-full rounded-lg neum-input">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Number</label>
+                                <input type="text" placeholder="Auto-generated" value="INV-2023-001" class="p-3 w-full rounded-lg neum-input bg-gray-100" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Invoice Date</label>
+                                <input type="date" class="p-3 w-full rounded-lg neum-input" value="2023-11-10">
+                            </div>
+                        </div>
+                        
+                        <div class="neum-card p-4 mt-4">
+                            <h4 class="font-medium text-gray-700 mb-3">Items</h4>
+                            <div id="itemsList" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Item</label>
+                                        <input type="text" placeholder="Item name" class="p-3 w-full rounded-lg neum-input">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Quantity</label>
+                                        <input type="number" placeholder="Qty" class="p-3 w-full rounded-lg neum-input item-qty" min="1" value="1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label>
+                                        <input type="number" placeholder="Unit price" class="p-3 w-full rounded-lg neum-input item-price" min="0" step="0.01">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">GST %</label>
+                                        <select class="p-3 w-full rounded-lg neum-input item-gst">
+                                            <option value="0">0%</option>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18" selected>18%</option>
+                                            <option value="28">28%</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
+                                        <input type="text" placeholder="0.00" class="p-3 w-full rounded-lg neum-input item-total bg-gray-100" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addItem()" class="neum-button mt-4 px-4 py-2 text-gray-700">
+                                <i class="bi bi-plus-circle mr-1"></i> Add Item
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="neum-card p-4">
+                                <h4 class="font-medium text-gray-700 mb-3">Payment Details</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Payment Method</label>
+                                        <select class="p-3 w-full rounded-lg neum-input">
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Credit/Debit Card</option>
+                                            <option value="upi">UPI</option>
+                                            <option value="bank">Bank Transfer</option>
+                                            <option value="crypto">Crypto Token</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Payment Status</label>
+                                        <select class="p-3 w-full rounded-lg neum-input">
+                                            <option value="paid">Paid</option>
+                                            <option value="unpaid" selected>Unpaid</option>
+                                            <option value="partial">Partially Paid</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Due Date</label>
+                                        <input type="date" class="p-3 w-full rounded-lg neum-input" value="2023-11-25">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="neum-card p-4">
+                                <h4 class="font-medium text-gray-700 mb-3">Invoice Summary</h4>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Subtotal:</span>
+                                        <span class="font-medium" id="subtotal">₹0.00</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">GST:</span>
+                                        <span class="font-medium" id="total-gst">₹0.00</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Discount:</span>
+                                        <div class="flex items-center">
+                                            <input type="number" id="discount" placeholder="0" min="0" class="p-2 w-16 rounded-lg neum-input mr-2" value="0">
+                                            <span>%</span>
+                                        </div>
+                                    </div>
+                                    <hr class="my-2 border-gray-300">
+                                    <div class="flex justify-between text-lg font-semibold">
+                                        <span>Total:</span>
+                                        <span id="grand-total">₹0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-4 justify-end mt-6">
+                            <button type="button" class="neum-button px-4 py-3 text-gray-700">
+                                <i class="bi bi-save mr-1"></i> Save as Draft
+                            </button>
+                            <button type="button" class="neum-button px-4 py-3 text-gray-700">
+                                <i class="bi bi-printer mr-1"></i> Print
+                            </button>
+                            <button type="submit" class="neum-button px-6 py-3 text-gray-700 font-semibold">
+                                <i class="bi bi-check-circle mr-1"></i> Generate Invoice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quotation Module -->
+            <div id="quotation" class="module-content">
+                <div class="neum-card p-6">
+                    <h3 class="text-2xl font-semibold mb-6 text-gray-700">Create Quotation</h3>
+                    <form id="quotationForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Customer Name</label>
+                                <input type="text" placeholder="Enter customer name" class="p-3 w-full rounded-lg neum-input">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Quotation Number</label>
+                                <input type="text" placeholder="Auto-generated" value="QT-2023-001" class="p-3 w-full rounded-lg neum-input bg-gray-100" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Valid Until</label>
+                                <input type="date" class="p-3 w-full rounded-lg neum-input" value="2023-12-10">
+                            </div>
+                        </div>
+                        
+                        <div class="neum-card p-4 mt-4">
+                            <h4 class="font-medium text-gray-700 mb-3">Items</h4>
+                            <div id="quotationItemsList" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Item</label>
+                                        <input type="text" placeholder="Item name" class="p-3 w-full rounded-lg neum-input">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Quantity</label>
+                                        <input type="number" placeholder="Qty" class="p-3 w-full rounded-lg neum-input" min="1" value="1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label>
+                                        <input type="number" placeholder="Unit price" class="p-3 w-full rounded-lg neum-input" min="0" step="0.01">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">GST %</label>
+                                        <select class="p-3 w-full rounded-lg neum-input">
+                                            <option value="0">0%</option>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18" selected>18%</option>
+                                            <option value="28">28%</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
+                                        <input type="text" placeholder="0.00" class="p-3 w-full rounded-lg neum-input bg-gray-100" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="neum-button mt-4 px-4 py-2 text-gray-700">
+                                <i class="bi bi-plus-circle mr-1"></i> Add Item
+                            </button>
+                        </div>
+                        
+                        <div class="neum-card p-4">
+                            <h4 class="font-medium text-gray-700 mb-3">Terms & Conditions</h4>
+                            <textarea class="p-3 w-full rounded-lg neum-input min-h-[100px]" placeholder="Enter terms and conditions">1. This quotation is valid for 30 days.
+2. Delivery time: 7-10 business days after confirmation.
+3. 50% advance payment required to confirm order.
+4. Installation charges extra as applicable.</textarea>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-4 justify-end mt-6">
+                            <button type="button" class="neum-button px-4 py-3 text-gray-700">
+                                <i class="bi bi-envelope mr-1"></i> Email Quotation
+                            </button>
+                            <button type="button" class="neum-button px-4 py-3 text-gray-700">
+                                <i class="bi bi-printer mr-1"></i> Print
+                            </button>
+                            <button type="submit" class="neum-button px-6 py-3 text-gray-700 font-semibold">
+                                <i class="bi bi-check-circle mr-1"></i> Generate Quotation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ERP Module -->
+            <div id="erp" class="module-content">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Inventory Status</h4>
+                        <p class="text-2xl font-semibold">1,234 items</p>
+                        <div class="flex justify-between mt-2">
+                            <span class="text-sm text-gray-600">Low Stock Items: <span class="text-red-500 font-medium">8</span></span>
+                            <a href="#" class="text-sm text-blue-600">View Details</a>
+                        </div>
+                    </div>
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Active Orders</h4>
+                        <p class="text-2xl font-semibold">56</p>
+                        <div class="flex justify-between mt-2">
+                            <span class="text-sm text-gray-600">Pending Delivery: 12</span>
+                            <a href="#" class="text-sm text-blue-600">View Orders</a>
+                        </div>
+                    </div>
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Revenue (MTD)</h4>
+                        <p class="text-2xl font-semibold">₹4,56,789</p>
+                        <div class="flex justify-between mt-2">
+                            <span class="text-sm text-gray-600">+12% vs Last Month</span>
+                            <a href="#" class="text-sm text-blue-600">See Report</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="neum-card p-5">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-4">Inventory Management</h4>
+                        <div class="space-y-4">
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Raw Materials</h5>
+                                    <p class="text-sm text-gray-600">358 items</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Finished Goods</h5>
+                                    <p class="text-sm text-gray-600">876 items</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Stock Transfer</h5>
+                                    <p class="text-sm text-gray-600">Between locations</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="neum-card p-5">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-4">Supplier Management</h4>
+                        <div class="space-y-4">
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Purchase Orders</h5>
+                                    <p class="text-sm text-gray-600">15 active orders</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Supplier Directory</h5>
+                                    <p class="text-sm text-gray-600">42 suppliers</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="neum-button p-3 flex justify-between items-center">
+                                <div>
+                                    <h5 class="font-medium">Payments Due</h5>
+                                    <p class="text-sm text-gray-600">₹86,500</p>
+                                </div>
+                                <button class="neum-button p-2">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="neum-card p-5 mt-6">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-4">Recent Transactions</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead>
+                                <tr class="text-left text-gray-600">
+                                    <th class="py-3 px-4">Transaction ID</th>
+                                    <th class="py-3 px-4">Date</th>
+                                    <th class="py-3 px-4">Description</th>
+                                    <th class="py-3 px-4">Amount</th>
+                                    <th class="py-3 px-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3 px-4">TRX-2023-156</td>
+                                    <td class="py-3 px-4">10-11-2023</td>
+                                    <td class="py-3 px-4">Payment for Invoice INV-2023-089</td>
+                                    <td class="py-3 px-4">₹24,500</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Completed</span></td>
+                                </tr>
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3 px-4">TRX-2023-155</td>
+                                    <td class="py-3 px-4">09-11-2023</td>
+                                    <td class="py-3 px-4">Purchase Order PO-2023-045</td>
+                                    <td class="py-3 px-4">₹36,750</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Pending</span></td>
+                                </tr>
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3 px-4">TRX-2023-154</td>
+                                    <td class="py-3 px-4">08-11-2023</td>
+                                    <td class="py-3 px-4">Payment for Invoice INV-2023-088</td>
+                                    <td class="py-3 px-4">₹18,900</td>
+                                    <td class="py-3 px-4"><span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Completed</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRM Module -->
+            <div id="crm" class="module-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Total Customers</h4>
+                        <p class="text-2xl font-semibold">286</p>
+                        <div class="text-sm text-gray-600 mt-2">+24 this month</div>
+                    </div>
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Active Leads</h4>
+                        <p class="text-2xl font-semibold">45</p>
+                        <div class="text-sm text-gray-600 mt-2">12 hot leads</div>
+                    </div>
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Follow-ups Today</h4>
+                        <p class="text-2xl font-semibold">12</p>
+                        <div class="text-sm text-gray-600 mt-2">3 completed</div>
+                    </div>
+                    <div class="neum-card p-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Conversion Rate</h4>
+                        <p class="text-2xl font-semibold">38%</p>
+                        <div class="text-sm text-gray-600 mt-2">+5% vs last month</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="neum-card p-5 lg:col-span-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-lg font-semibold text-gray-700">Recent Leads</h4>
+                            <button class="neum-button px-3 py-1 text-sm">
+                                <i class="bi bi-plus-circle mr-1"></i> Add New Lead
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="neum-button p-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-medium">Rohit Sharma</h5>
+                                        <p class="text-sm text-gray-600">Office renovation, Mumbai</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs mr-3">Medium</span>
+                                        <button class="neum-button p-2">
+                                            <i class="bi bi-telephone"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between mt-2 text-xs text-gray-600">
+                                    <span>Added: 08-11-2023</span>
+                                    <span>Last Contact: 3 days ago</span>
+                                </div>
+                            </div>
+                            <div class="neum-button p-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-medium">Priya Patel</h5>
+                                        <p class="text-sm text-gray-600">Home furnishing, Delhi</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="inline-block px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs mr-3">Hot</span>
+                                        <button class="neum-button p-2">
+                                            <i class="bi bi-telephone"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between mt-2 text-xs text-gray-600">
+                                    <span>Added: 05-11-2023</span>
+                                    <span>Last Contact: 1 day ago</span>
+                                </div>
+                            </div>
+                            <div class="neum-button p-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-medium">Vikram Singh</h5>
+                                        <p class="text-sm text-gray-600">Hotel furnishing, Jaipur</p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs mr-3">Cold</span>
+                                        <button class="neum-button p-2">
+                                            <i class="bi bi-telephone"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between mt-2 text-xs text-gray-600">
+                                    <span>Added: 01-11-2023</span>
+                                    <span>Last Contact: 5 days ago</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <a href="#" class="text-sm text-blue-600">View All Leads →</a>
+                        </div>
+                    </div>
+                    
+                    <div class="neum-card p-5">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-4">Today's Follow-ups</h4>
+                        <div class="space-y-3">
+                            <div class="neum-button p-3">
+                                <div class="flex justify-between mb-1">
+                                    <h5 class="font-medium">Priya Patel</h5>
+                                    <span class="text-xs text-gray-600">10:30 AM</span>
+                                </div>
+                                <p class="text-sm text-gray-600">Discuss fabric samples</p>
+                            </div>
+                            <div class="neum-button p-3">
+                                <div class="flex justify-between mb-1">
+                                    <h5 class="font-medium">Anand Kumar</h5>
+                                    <span class="text-xs text-gray-600">01:15 PM</span>
+                                </div>
+                                <p class="text-sm text-gray-600">Follow up on quotation</p>
+                            </div>
+                            <div class="neum-button p-3">
+                                <div class="flex justify-between mb-1">
+                                    <h5 class="font-medium">Shweta Desai</h5>
+                                    <span class="text-xs text-gray-600">03:45 PM</span>
+                                </div>
+                                <p class="text-sm text-gray-600">Send revised design proposal</p>
+                            </div>
+                            <div class="neum-button p-3">
+                                <div class="flex justify-between mb-1">
+                                    <h5 class="font-medium">Rajiv Mehta</h5>
+                                    <span class="text-xs text-gray-600">05:00 PM</span>
+                                </div>
+                                <p class="text-sm text-gray-600">Payment reminder</p>
+                            </div>
+                        </div>
+                        <button class="neum-button w-full mt-4 py-2 text-center">
+                            <i class="bi bi-calendar-plus mr-1"></i> Add Reminder
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="neum-card p-5 mt-6">
+                    <h4 class="text-lg font-semibold text-gray-700 mb-4">Sales Pipeline</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="neum-card p-3">
+                            <h5 class="font-medium text-center mb-2">Lead Generation</h5>
+                            <p class="text-center text-xl font-semibold">21</p>
+                            <div class="mt-3 space-y-2">
+                                <div class="neum-button p-2 text-sm">Rajesh Kumar</div>
+                                <div class="neum-button p-2 text-sm">Meera Joshi</div>
+                                <div class="neum-button p-2 text-sm">+19 more</div>
+                            </div>
+                        </div>
+                        <div class="neum-card p-3">
+                            <h5 class="font-medium text-center mb-2">Qualification</h5>
+                            <p class="text-center text-xl font-semibold">14</p>
+                            <div class="mt-3 space-y-2">
+                                <div class="neum-button p-2 text-sm">Priya Patel</div>
+                                <div class="neum-button p-2 text-sm">Sunil Verma</div>
+                                <div class="neum-button p-2 text-sm">+12 more</div>
+                            </div>
+                        </div>
+                        <div class="neum-card p-3">
+                            <h5 class="font-medium text-center mb-2">Proposal</h5>
+                            <p class="text-center text-xl font-semibold">9</p>
+                            <div class="mt-3 space-y-2">
+                                <div class="neum-button p-2 text-sm">Vikram Singh</div>
+                                <div class="neum-button p-2 text-sm">Neha Sharma</div>
+                                <div class="neum-button p-2 text-sm">+7 more</div>
+                            </div>
+                        </div>
+                        <div class="neum-card p-3">
+                            <h5 class="font-medium text-center mb-2">Closure</h5>
+                            <p class="text-center text-xl font-semibold">6</p>
+                            <div class="mt-3 space-y-2">
+                                <div class="neum-button p-2 text-sm">Amit Patel</div>
+                                <div class="neum-button p-2 text-sm">Sanjay Gupta</div>
+                                <div class="neum-button p-2 text-sm">+4 more</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token Module (New) -->
+            <div id="token" class="module-content">
+                <div class="neum-card p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-2xl font-semibold mb-4 text-gray-700">KFurnish Loyalty Tokens</h3>
+                            <p class="text-gray-600 mb-6">Reward your customers with loyalty tokens for every purchase. These tokens can be redeemed for discounts on future purchases.</p>
+                            
+                            <div id="tokenInfo" class="space-y-4">
+                                <div class="neum-card p-4">
+                                    <h4 class="font-medium text-gray-700 mb-2">Token Details</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Name:</span>
+                                            <span class="font-medium" id="tokenName">KFurnish Token</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Symbol:</span>
+                                            <span class="font-medium" id="tokenSymbol">KFUR</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Network:</span>
+                                            <span class="font-medium" id="tokenNetwork">Polygon</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Your Balance:</span>
+                                            <span class="font-medium" id="tokenBalance"><div class="loading"></div></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Total Supply:</span>
+                                            <span class="font-medium" id="tokenSupply"><div class="loading"></div></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="walletRequiredMsg" class="neum-card p-4 bg-yellow-50 hidden">
+                                    <p class="text-yellow-700">
+                                        <i class="bi bi-exclamation-triangle mr-2"></i>
+                                        Please connect your wallet to interact with the token system
+                                    </p>
+                                </div>
+                                
+                                <div id="wrongNetworkMsg" class="neum-card p-4 bg-yellow-50 hidden">
+                                    <p class="text-yellow-700">
+                                        <i class="bi bi-exclamation-triangle mr-2"></i>
+                                        Please switch to Polygon network
+                                    </p>
+                                    <button id="switchNetworkBtn" class="neum-button mt-3 px-4 py-2 text-gray-700 w-full">
+                                        Switch to Polygon
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="neum-card p-4 mb-6">
+                                <h4 class="font-medium text-gray-700 mb-3">Reward Customer</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Customer Address</label>
+                                        <input type="text" id="customerAddress" placeholder="0x..." class="p-3 w-full rounded-lg neum-input">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Token Amount</label>
+                                        <input type="number" id="tokenAmount" placeholder="Amount" min="1" class="p-3 w-full rounded-lg neum-input">
+                                        <p class="text-xs text-gray-500 mt-1">Standard: 1 token per ₹100 spent</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-600 mb-1">Reference</label>
+                                        <input type="text" id="tokenReference" placeholder="e.g. INV-2023-001" class="p-3 w-full rounded-lg neum-input">
+                                    </div>
+                                    <button type="button" id="sendTokenBtn" class="neum-button w-full p-3 text-gray-700 font-semibold">
+                                        <i class="bi bi-send mr-1"></i> Send Tokens
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="neum-card p-4">
+                                <h4 class="font-medium text-gray-700 mb-3">Recent Token Transactions</h4>
+                                <div id="tokenTransactions" class="space-y-2 max-h-[200px] overflow-y-auto">
+                                    <div id="loadingTransactions">
+                                        <div class="loading"></div>
+                                        <p class="text-center text-sm text-gray-500 mt-2">Loading transactions...</p>
+                                    </div>
+                                    <div id="noTransactionsMsg" class="text-center text-sm text-gray-500 hidden">
+                                        No transactions found
+                                    </div>
+                                    <div id="transactionsList" class="space-y-2 hidden"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Module switching functionality
+        document.querySelectorAll('.module-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons and contents
+                document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.module-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                document.getElementById(button.dataset.module).classList.add('active');
+            });
+        });
+
+        // Add item row in billing form
+        function addItem() {
+            const itemsList = document.getElementById('itemsList');
+            const newItem = document.createElement('div');
+            newItem.className = 'grid grid-cols-1 md:grid-cols-5 gap-4';
+            newItem.innerHTML = `
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Item</label>
+                    <input type="text" placeholder="Item name" class="p-3 w-full rounded-lg neum-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Quantity</label>
+                    <input type="number" placeholder="Qty" class="p-3 w-full rounded-lg neum-input item-qty" min="1" value="1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Price (₹)</label>
+                    <input type="number" placeholder="Unit price" class="p-3 w-full rounded-lg neum-input item-price" min="0" step="0.01">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">GST %</label>
+                    <select class="p-3 w-full rounded-lg neum-input item-gst">
+                        <option value="0">0%</option>
+                        <option value="5">5%</option>
+                        <option value="12">12%</option>
+                        <option value="18" selected>18%</option>
+                        <option value="28">28%</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Amount (₹)</label>
+                    <input type="text" placeholder="0.00" class="p-3 w-full rounded-lg neum-input item-total bg-gray-100" readonly>
+                </div>
+            `;
+            itemsList.appendChild(newItem);
+            attachCalculationEvents();
+        }
+        
+        // Calculation for billing items
+        function calculateItemTotal(row) {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const gst = parseFloat(row.querySelector('.item-gst').value) || 0;
+            
+            const subtotal = qty * price;
+            const total = subtotal + (subtotal * (gst / 100));
+            
+            row.querySelector('.item-total').value = total.toFixed(2);
+            updateInvoiceSummary();
+        }
+        
+        function attachCalculationEvents() {
+            document.querySelectorAll('#itemsList > div').forEach(row => {
+                row.querySelectorAll('.item-qty, .item-price, .item-gst').forEach(input => {
+                    input.addEventListener('input', () => calculateItemTotal(row));
+                });
+            });
+            
+            document.getElementById('discount').addEventListener('input', updateInvoiceSummary);
+        }
+        
+        function updateInvoiceSummary() {
+            let subtotal = 0;
+            let totalGst = 0;
+            
+            document.querySelectorAll('#itemsList > div').forEach(row => {
+                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const gst = parseFloat(row.querySelector('.item-gst').value) || 0;
+                
+                const itemSubtotal = qty * price;
+                const itemGst = itemSubtotal * (gst / 100);
+                
+                subtotal += itemSubtotal;
+                totalGst += itemGst;
+            });
+            
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            const discountAmount = subtotal * (discount / 100);
+            const grandTotal = subtotal + totalGst - discountAmount;
+            
+            document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('total-gst').textContent = `₹${totalGst.toFixed(2)}`;
+            document.getElementById('grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
+        }
+        
+        // Form submission
+        document.getElementById('billingForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Show loading state
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="loading"></div>';
+            
+            // Simulate API request
+            setTimeout(() => {
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                
+                // Show success message
+                alert('Invoice generated successfully!');
+                
+                // You would typically use the MongoDB operations API here
+                // to save the invoice data
+            }, 1500);
+        });
+        
+        // Initialize calculation events
+        document.addEventListener('DOMContentLoaded', () => {
+            attachCalculationEvents();
+            initializeWeb3();
+        });
+
+        // Web3 Integration
+        let provider, signer, contract;
+        const polygonChainId = '0x89'; // Polygon Mainnet in hex
+        const tokenAddress = 'FF-104 Earth Essanse b/s swagat green ville bunglows';
+        
+        // Standard ERC-20 ABI
+        const erc20Abi = [
+            "function name() view returns (string)",
+            "function symbol() view returns (string)",
+            "function decimals() view returns (uint8)",
+            "function totalSupply() view returns (uint256)",
+            "function balanceOf(address owner) view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "event Transfer(address indexed from, address indexed to, uint256 value)"
+        ];
+
+        // Show notification
+        function showNotification(title, message, isSuccess = true) {
+            const notification = document.getElementById('blockchainNotification');
+            const notificationIcon = document.getElementById('notificationIcon');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            
+            // Set content
+            notificationIcon.innerHTML = isSuccess ? '<i class="bi bi-check-circle text-green-500"></i>' : '<i class="bi bi-exclamation-circle text-red-500"></i>';
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            
+            // Show notification
+            notification.classList.add('active');
+            
+            // Hide notification after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 5000);
+        }
+
+        // Initialize web3 integration
+        async function initializeWeb3() {
+            checkProviderConnection();
+            
+            // Set up wallet connection button
+            const walletConnectBtn = document.getElementById('walletConnectBtn');
+            walletConnectBtn.addEventListener('click', async () => {
+                try {
+                    await connectWallet();
+                } catch (error) {
+                    console.error('Wallet connection error:', error);
+                    showNotification('Connection Error', error.message || 'Failed to connect wallet', false);
+                }
+            });
+            
+            // Set up switch network button
+            const switchNetworkBtn = document.getElementById('switchNetworkBtn');
+            switchNetworkBtn.addEventListener('click', async () => {
+                try {
+                    await switchToPolygonNetwork();
+                } catch (error) {
+                    console.error('Network switch error:', error);
+                    showNotification('Network Error', error.message || 'Failed to switch network', false);
+                }
+            });
+            
+            // Set up send token button
+            const sendTokenBtn = document.getElementById('sendTokenBtn');
+            sendTokenBtn.addEventListener('click', async () => {
+                if (!provider || !signer) {
+                    showNotification('Wallet Required', 'Please connect your wallet first', false);
+                    document.getElementById('walletRequiredMsg').classList.remove('hidden');
+                    return;
+                }
+                
+                try {
+                    await sendTokens();
+                } catch (error) {
+                    console.error('Token transfer error:', error);
+                    showNotification('Transfer Failed', error.message || 'Failed to send tokens', false);
+                }
+            });
+            
+            // Check if MetaMask is already connected
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectWallet();
+            }
+        }
+
+        // Check for provider connection
+        function checkProviderConnection() {
+            if (window.ethereum) {
+                // Handle chain changes
+                window.ethereum.on('chainChanged', (chainId) => {
+                    window.location.reload();
+                });
+                
+                // Handle account changes
+                window.ethereum.on('accountsChanged', (accounts) => {
+                    if (accounts.length === 0) {
+                        // User disconnected
+                        updateWalletUI(false);
+                    } else {
+                        // Account changed
+                        connectWallet();
+                    }
+                });
+            } else {
+                console.log('MetaMask or compatible wallet not detected');
+            }
+        }
+
+        // Connect to wallet
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    throw new Error('Please install MetaMask or a compatible wallet');
+                }
+                
+                // Show loading in button
+                const walletConnectBtn = document.getElementById('walletConnectBtn');
+                const originalBtnText = walletConnectBtn.innerHTML;
+                walletConnectBtn.innerHTML = '<div class="loading"></div>';
+                
+                // Request account access
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send('eth_requestAccounts', []);
+                signer = provider.getSigner();
+                
+                // Get connected account
+                const address = await signer.getAddress();
+                const ensName = address.substr(0, 6) + '...' + address.substr(-4);
+                
+                // Update UI
+                updateWalletUI(true, address, ensName);
+                
+                // Check network
+                const network = await provider.getNetwork();
+                const chainId = ethers.utils.hexValue(network.chainId);
+                if (chainId !== polygonChainId) {
+                    document.getElementById('wrongNetworkMsg').classList.remove('hidden');
+                    document.getElementById('walletRequiredMsg').classList.add('hidden');
+                } else {
+                    document.getElementById('wrongNetworkMsg').classList.add('hidden');
+                    document.getElementById('walletRequiredMsg').classList.add('hidden');
+                    
+                    // Initialize token contract
+                    initializeTokenContract();
+                }
+                
+                // Reset button
+                walletConnectBtn.innerHTML = originalBtnText;
+                
+                // Show success notification
+                showNotification('Wallet Connected', 'Successfully connected to your wallet');
+                
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // Update wallet UI
+        function updateWalletUI(isConnected, address = '', ensName = '') {
+            const walletStatus = document.getElementById('walletStatus');
+            const walletConnectBtn = document.getElementById('walletConnectBtn');
+            
+            if (isConnected) {
+                // Update wallet status
+                document.getElementById('walletAddress').textContent = ensName || address;
+                walletStatus.classList.remove('hidden', 'opacity-0');
+                
+                // Update wallet button
+                walletConnectBtn.innerHTML = '<i class="bi bi-wallet2-fill mr-2"></i>Connected';
+                
+                // Get and display balance
+                getAddressBalance(address);
+            } else {
+                // Hide wallet status
+                walletStatus.classList.add('hidden', 'opacity-0');
+                
+                // Reset wallet button
+                walletConnectBtn.innerHTML = '<i class="bi bi-wallet2 mr-2"></i>Connect Wallet';
+                
+                // Show wallet required message
+                document.getElementById('walletRequiredMsg').classList.remove('hidden');
+            }
+        }
+
+        // Get ETH balance
+        async function getAddressBalance(address) {
+            if (!provider) return;
+            
+            try {
+                // Get ETH balance
+                const balance = await provider.getBalance(address);
+                const formattedBalance = parseFloat(ethers.utils.formatEther(balance)).toFixed(4);
+                
+                // Update UI
+                document.getElementById('walletBalance').textContent = `${formattedBalance} MATIC`;
+                
+                // Get network
+                const network = await provider.getNetwork();
+                document.getElementById('networkInfo').textContent = `Network: ${network.name}`;
+            } catch (error) {
+                console.error('Error fetching balance:', error);
+                document.getElementById('walletBalance').textContent = 'Error fetching balance';
+            }
+        }
+
+        // Switch to Polygon network
+        async function switchToPolygonNetwork() {
+            if (!window.ethereum) {
+                throw new Error('MetaMask is not installed');
+            }
+            
+            try {
+                // Try switching to Polygon
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: polygonChainId }]
+                });
+                
+                // Refresh provider after switch
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                
+                // Update UI and initialize contract
+                document.getElementById('wrongNetworkMsg').classList.add('hidden');
+                initializeTokenContract();
+                
+                // Show success notification
+                showNotification('Network Switched', 'Successfully switched to Polygon network');
+            } catch (error) {
+                if (error.code === 4902) {
+                    // This error code indicates the chain has not been added to MetaMask
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: polygonChainId,
+                                chainName: 'Polygon',
+                                nativeCurrency: {
+                                    name: 'MATIC',
+                                    symbol: 'MATIC',
+                                    decimals: 18
+                                },
+                                rpcUrls: ['https://polygon-rpc.com/'],
+                                blockExplorerUrls: ['https://polygonscan.com/']
+                            }]
+                        });
+                        
+                        // Try switching again
+                        await switchToPolygonNetwork();
+                    } catch (addError) {
+                        throw addError;
+                    }
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        // Initialize token contract
+        async function initializeTokenContract() {
+            try {
+                // Update UI to loading state
+                document.getElementById('tokenBalance').innerHTML = '<div class="loading"></div>';
+                document.getElementById('tokenSupply').innerHTML = '<div class="loading"></div>';
+                
+                // Initialize contract
+                contract = new ethers.Contract(tokenAddress, erc20Abi, signer);
+                
+                // Get token info
+                const [name, symbol, decimals, totalSupply] = await Promise.all([
+                    contract.name().catch(() => 'KFurnish Token'),
+                    contract.symbol().catch(() => 'KFUR'),
+                    contract.decimals().catch(() => 18),
+                    contract.totalSupply().catch(() => ethers.utils.parseEther('1000000'))
+                ]);
+                
+                // Get user balance
+                const address = await signer.getAddress();
+                const balance = await contract.balanceOf(address).catch(() => ethers.BigNumber.from(0));
+                
+                // Format values
+                const formattedSupply = ethers.utils.formatUnits(totalSupply, decimals);
+                const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+                
+                // Update UI
+                document.getElementById('tokenName').textContent = name;
+                document.getElementById('tokenSymbol').textContent = symbol;
+                document.getElementById('tokenNetwork').textContent = 'Polygon';
+                document.getElementById('tokenBalance').textContent = `${parseFloat(formattedBalance).toFixed(2)} ${symbol}`;
+                document.getElementById('tokenSupply').textContent = `${parseFloat(formattedSupply).toFixed(0)} ${symbol}`;
+                
+                // Load token transactions
+                loadTokenTransactions();
+            } catch (error) {
+                console.error('Error initializing token contract:', error);
+                
+                // Update UI with fallback values
+                document.getElementById('tokenName').textContent = 'KFurnish Token';
+                document.getElementById('tokenSymbol').textContent = 'KFUR';
+                document.getElementById('tokenNetwork').textContent = 'Polygon';
+                document.getElementById('tokenBalance').textContent = '0.00 KFUR';
+                document.getElementById('tokenSupply').textContent = '1,000,000 KFUR';
+                
+                showNotification('Contract Error', 'Error loading token contract', false);
+            }
+        }
+
+        // Send tokens
+        async function sendTokens() {
+            try {
+                if (!contract || !signer) {
+                    throw new Error('Contract not initialized or wallet not connected');
+                }
+                
+                // Get input values
+                const customerAddress = document.getElementById('customerAddress').value;
+                const tokenAmount = document.getElementById('tokenAmount').value;
+                const reference = document.getElementById('tokenReference').value;
+                
+                // Validate input
+                if (!customerAddress || !ethers.utils.isAddress(customerAddress)) {
+                    throw new Error('Please enter a valid Ethereum address');
+                }
+                
+                if (!tokenAmount || parseFloat(tokenAmount) <= 0) {
+                    throw new Error('Please enter a valid token amount');
+                }
+                
+                // Show loading state
+                const sendTokenBtn = document.getElementById('sendTokenBtn');
+                const originalBtnText = sendTokenBtn.innerHTML;
+                sendTokenBtn.innerHTML = '<div class="loading"></div>';
+                sendTokenBtn.disabled = true;
+                
+                // Format amount with proper decimals (default 18 if not available)
+                const decimals = await contract.decimals().catch(() => 18);
+                const amount = ethers.utils.parseUnits(tokenAmount.toString(), decimals);
+                
+                // Send transaction
+                const tx = await contract.transfer(customerAddress, amount);
+                
+                // Show pending notification
+                showNotification('Transaction Sent', 'Waiting for confirmation...', true);
+                
+                // Wait for confirmation
+                await tx.wait();
+                
+                // Reset button
+                sendTokenBtn.innerHTML = originalBtnText;
+                sendTokenBtn.disabled = false;
+                
+                // Show success message
+                showNotification('Tokens Sent', `Successfully sent ${tokenAmount} tokens to customer`, true);
+                
+                // Reset form
+                document.getElementById('customerAddress').value = '';
+                document.getElementById('tokenAmount').value = '';
+                
+                // Update token balance
+                const address = await signer.getAddress();
+                const balance = await contract.balanceOf(address);
+                document.getElementById('tokenBalance').textContent = 
+                    `${parseFloat(ethers.utils.formatUnits(balance, decimals)).toFixed(2)} ${await contract.symbol()}`;
+                
+                // Add to transactions list
+                addTransactionToUI(customerAddress, tokenAmount, reference);
+                
+            } catch (error) {
+                console.error('Error sending tokens:', error);
+                
+                // Reset button
+                const sendTokenBtn = document.getElementById('sendTokenBtn');
+                sendTokenBtn.innerHTML = '<i class="bi bi-send mr-1"></i> Send Tokens';
+                sendTokenBtn.disabled = false;
+                
+                // Show error notification
+                showNotification('Transaction Failed', error.message || 'Failed to send tokens', false);
+            }
+        }
+
+        // Load token transactions
+        async function loadTokenTransactions() {
+            try {
+                // Show loading state
+                document.getElementById('loadingTransactions').classList.remove('hidden');
+                document.getElementById('transactionsList').classList.add('hidden');
+                document.getElementById('noTransactionsMsg').classList.add('hidden');
+                
+                // For demo purposes, we'll use mock data
+                // In a real application, you would fetch transaction history from blockchain
+                setTimeout(() => {
+                    // Hide loading and show mock transactions
+                    document.getElementById('loadingTransactions').classList.add('hidden');
+                    document.getElementById('transactionsList').classList.remove('hidden');
+                    
+                    // Add mock transactions
+                    const mockTransactions = [
+                        { to: '0x1234...5678', amount: '10', reference: 'INV-2023-090' },
+                        { to: '0x8765...4321', amount: '25', reference: 'INV-2023-089' },
+                        { to: '0x4567...8901', amount: '5', reference: 'INV-2023-088' }
+                    ];
+                    
+                    if (mockTransactions.length > 0) {
+                        mockTransactions.forEach(tx => {
+                            addTransactionToUI(tx.to, tx.amount, tx.reference);
+                        });
+                    } else {
+                        document.getElementById('noTransactionsMsg').classList.remove('hidden');
+                    }
+                }, 1500);
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('loadingTransactions').classList.add('hidden');
+                document.getElementById('noTransactionsMsg').classList.remove('hidden');
+            }
+        }
+
+        // Add transaction to UI
+        function addTransactionToUI(to, amount, reference) {
+            const transactionsList = document.getElementById('transactionsList');
+            const txItem = document.createElement('div');
+            txItem.className = 'neum-button p-2 text-sm';
+            txItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="font-medium">${amount} KFUR</span> to 
+                        <span class="text-gray-600">${to.substr(0, 6)}...${to.substr(-4)}</span>
+                    </div>
+                    ${reference ? `<span class="text-xs text-gray-500">${reference}</span>` : ''}
+                </div>
+            `;
+            transactionsList.prepend(txItem);
+            
+            // Show transactions list
+            document.getElementById('transactionsList').classList.remove('hidden');
+            document.getElementById('noTransactionsMsg').classList.add('hidden');
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
